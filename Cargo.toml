@@ -1,0 +1,20 @@
+[package]
+name = "is-it-on-netflix"
+version = "0.1.0"
+authors = ["gurio"]
+edition = "2018"
+build = "build.rs"
+
+[dependencies]
+env_logger = "0.5"
+askama = "0.7"
+actix = "0.7"
+actix-web = "0.7"
+futures = "*"
+strfmt = "*"
+serde = "*"
+serde_derive = "*"
+serde_json = "*"
+
+[build-dependencies]
+askama = "0.7"
