@@ -32,11 +32,13 @@ struct UserTemplate<'a> {
 #[template(path = "index.html")]
 struct Index;
 
+
 #[derive(Debug)]
 #[derive(Deserialize)]
+#[serde(untagged)]
 enum Record {
-    data(String),
-    lang(serde_json::Value),
+    someData(String),
+    langMap(HashMap<String,String>),
 }
 
 #[derive(Debug)]
@@ -45,7 +47,7 @@ struct UnogResponse {
     #[serde(rename = "COUNT")]
     count: String,
     #[serde(rename = "ITEMS")]
-    items: Vec<Vec<serde_json::Value>>,
+    items: Vec<Vec<Record>>,
 }
 
 static REQUEST_STR: &'static str = "http://unogs.com/nf.cgi?u=5unogs&q={title}-!{year},{year}-!0,5-!0,10-!0,10-!Any-!Any-!Any-!Any-!I%20Don&t=ns&cl=21,23,26,29,33,307,45,39,327,331,334,337,336,269,267,357,65,67,392,400,402,408,412,348,270,73,34,425,46,78&st=adv&ob=Relevance&p=1&l=100&";
@@ -89,8 +91,8 @@ fn index(query: Query<HashMap<String, String>>) -> Result<HttpResponse> {
     let s = match (query.get("title"), query.get("year")){
         (Some(title), Some(year)) => {
             let req_uri = get_request_uri(&title[..], &year[..]).expect("Request String formatting error");
-            let mut response = get_unog_response(&req_uri[..]);
-            let body = "Fuck you"; //get_repsonse_body(&mut response);
+            let response = get_unog_response(&req_uri[..]);
+            let body = "Oh hello"; //get_repsonse_body(&mut response);
             let json = get_json_body(&response);
             UserTemplate {
                 title: title,
