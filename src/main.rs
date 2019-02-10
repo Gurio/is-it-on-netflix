@@ -35,7 +35,7 @@ struct Index;
 // the format of UNOG response is real stupid
 // you get an array of movies
 // and each movie itself is an array of infos related to it
-// each info might be a String or a map, 
+// each info might be a String or a map,
 // and there is no indicator which is which (except, maybe a position)
 #[derive(Debug)]
 #[derive(Deserialize)]
@@ -76,19 +76,33 @@ fn get_unog_response(req_uri: &str) -> client::ClientResponse {
         .wait().unwrap()
 }
 
-fn get_repsonse_body(response: &mut client::ClientResponse) -> String {
-    let mut body = String::new(); 
-    response.body().and_then(|resp| {  // <- complete body
-            body = format!("{:?}", resp);
-            Ok(())
-        }).wait().unwrap();
-    body
+fn get_json_body(response: &client::ClientResponse) -> UnogResponse {
+    let parsed_response: UnogResponse = response.json().wait().expect("Parsing json failed");
+    //println!("{:#?}", parsed_response);
+    parsed_response
 }
 
-fn get_json_body(response: &client::ClientResponse) -> UnogResponse {
-    let json: UnogResponse = response.json().wait().expect("Parsing json failed");
-    println!("{:#?}", json);
-    json
+fn get_lang_map(parsed_response: &UnogResponse, target_name: &String) -> HashMap<String, String> {
+    let mut is_target_found = false;
+    let mut result = HashMap::new();
+    'movies: for movie_info in parsed_response.items.iter() {
+        'records: for record in movie_info {
+            match record {
+                Record::SomeData(data) => {
+                    if data.to_lowercase().contains(&target_name.to_lowercase()) {
+                        is_target_found = true;
+                    }
+                },
+                Record::LangMap(map) => {
+                    if is_target_found {
+                        result = map.clone();
+                        break 'movies;
+                    }
+                },
+            }
+        }
+    };
+    result
 }
 
 fn index(query: Query<HashMap<String, String>>) -> Result<HttpResponse> {
@@ -96,12 +110,14 @@ fn index(query: Query<HashMap<String, String>>) -> Result<HttpResponse> {
         (Some(title), Some(year)) => {
             let req_uri = get_request_uri(&title[..], &year[..]).expect("Request String formatting error");
             let response = get_unog_response(&req_uri[..]);
-            let body = "Oh hello"; //get_repsonse_body(&mut response);
-            let json = get_json_body(&response);
+            let body = "Oh hello";
+            let json_response = get_json_body(&response);
+            let languages = get_lang_map(&json_response, &title);
+            println!("{:#?}", languages);
             UserTemplate {
                 title: title,
                 year: year,
-                response: &body[..],
+                response: &format!("{:#?}", languages)[..],
             }.render().unwrap()
         },
         _ => Index.render().unwrap(),
