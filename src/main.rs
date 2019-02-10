@@ -78,7 +78,6 @@ fn get_unog_response(req_uri: &str) -> client::ClientResponse {
 
 fn get_json_body(response: &client::ClientResponse) -> UnogResponse {
     let parsed_response: UnogResponse = response.json().wait().expect("Parsing json failed");
-    //println!("{:#?}", parsed_response);
     parsed_response
 }
 
@@ -86,6 +85,7 @@ fn get_lang_map(parsed_response: &UnogResponse, target_name: &String) -> HashMap
     let mut is_target_found = false;
     let mut result = HashMap::new();
     'movies: for movie_info in parsed_response.items.iter() {
+        if is_target_found { break; } // if we found title name, but LangMap was not found - just stop
         'records: for record in movie_info {
             match record {
                 Record::SomeData(data) => {
@@ -110,7 +110,6 @@ fn index(query: Query<HashMap<String, String>>) -> Result<HttpResponse> {
         (Some(title), Some(year)) => {
             let req_uri = get_request_uri(&title[..], &year[..]).expect("Request String formatting error");
             let response = get_unog_response(&req_uri[..]);
-            let body = "Oh hello";
             let json_response = get_json_body(&response);
             let languages = get_lang_map(&json_response, &title);
             println!("{:#?}", languages);
