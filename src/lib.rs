@@ -26,7 +26,7 @@ use strfmt::{strfmt, FmtError};
 struct UserTemplate<'a> {
     title: &'a str,
     year: &'a str,
-    response: &'a str,
+    langs: Vec<&'a String>,
 }
 
 #[derive(Template)]
@@ -55,7 +55,6 @@ fn get_unog_response(req_uri: &str) -> client::ClientResponse {
         .send()
         .wait().unwrap()
 }
-
 
 fn get_lang_map(parsed_response: &json::UnogResponse, target_name: &String) -> HashMap<String, String> {
     let mut is_target_found = false;
@@ -92,7 +91,7 @@ pub fn index(query: Query<HashMap<String, String>>) -> Result<HttpResponse> {
             UserTemplate {
                 title: title,
                 year: year,
-                response: &format!("{:#?}", languages)[..],
+                langs: languages.values().collect(),
             }.render().unwrap()
         },
         _ => Index.render().unwrap(),

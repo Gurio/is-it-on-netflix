@@ -6,6 +6,12 @@
 </head>
 <body>
   <h1>Your title is {{ title }} from! {{ year }}</h1>
-  <p>{{ response }}</p>
+  <table>
+    {% for lang in langs %}
+    <TR>
+       <TD class="c1">{{lang}}</TD>
+    </TR>
+    {% endfor %}
+  </table>
 </body>
 </html>
