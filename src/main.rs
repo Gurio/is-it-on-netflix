@@ -32,13 +32,17 @@ struct UserTemplate<'a> {
 #[template(path = "index.html")]
 struct Index;
 
-
+// the format of UNOG response is real stupid
+// you get an array of movies
+// and each movie itself is an array of infos related to it
+// each info might be a String or a map, 
+// and there is no indicator which is which (except, maybe a position)
 #[derive(Debug)]
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum Record {
-    someData(String),
-    langMap(HashMap<String,String>),
+    SomeData(String),
+    LangMap(HashMap<String,String>),
 }
 
 #[derive(Debug)]
