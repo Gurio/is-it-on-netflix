@@ -1,5 +1,5 @@
 [package]
-name = "is-it-on-netflix"
+name = "is_it_on_netflix"
 version = "0.1.0"
 authors = ["gurio"]
 edition = "2018"
