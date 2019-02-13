@@ -19,14 +19,12 @@ use askama::Template;
 use futures::Future;
 use strfmt::{strfmt, FmtError};
 
-
-
 #[derive(Template)]
 #[template(path = "user.html")]
 struct UserTemplate<'a> {
     title: &'a str,
     year: &'a str,
-    langs: Vec<&'a String>,
+    countries: Vec<&'a String>,
 }
 
 #[derive(Template)]
@@ -56,11 +54,11 @@ fn get_unog_response(req_uri: &str) -> client::ClientResponse {
         .wait().unwrap()
 }
 
-fn get_lang_map(parsed_response: &json::UnogResponse, target_name: &String) -> HashMap<String, String> {
+fn get_country_map(parsed_response: &json::UnogResponse, target_name: &String) -> HashMap<String, String> {
     let mut is_target_found = false;
     let mut result = HashMap::new();
     'movies: for movie_info in parsed_response.items.iter() {
-        if is_target_found { break; } // if we found title name, but LangMap was not found - just stop
+        if is_target_found { break; } // if we found title name, but CountryMap was not found - just stop
         'records: for record in movie_info {
             match record {
                 json::Record::SomeData(data) => {
@@ -68,7 +66,7 @@ fn get_lang_map(parsed_response: &json::UnogResponse, target_name: &String) -> H
                         is_target_found = true;
                     }
                 },
-                json::Record::LangMap(map) => {
+                json::Record::CountryMap(map) => {
                     if is_target_found {
                         result = map.clone();
                         break 'movies;
@@ -86,12 +84,12 @@ pub fn index(query: Query<HashMap<String, String>>) -> Result<HttpResponse> {
             let req_uri = get_request_uri(&title[..], &year[..]).expect("Request String formatting error");
             let response = get_unog_response(&req_uri[..]);
             let json_response = json::get_json_body(&response);
-            let languages = get_lang_map(&json_response, &title);
-            println!("{:#?}", languages);
+            let countries = get_country_map(&json_response, &title);
+            println!("{:#?}", countries);
             UserTemplate {
                 title: title,
                 year: year,
-                langs: languages.values().collect(),
+                countries: countries.values().collect(),
             }.render().unwrap()
         },
         _ => Index.render().unwrap(),

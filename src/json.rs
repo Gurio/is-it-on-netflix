@@ -19,7 +19,7 @@ use actix_web::{
 #[serde(untagged)]
 pub enum Record {
     SomeData(String),
-    LangMap(HashMap<String,String>),
+    CountryMap(HashMap<String,String>),
 }
 
 #[derive(Debug)]
