@@ -14,7 +14,7 @@ use actix_web::{
     client, HttpResponse, Query, Result,
 };
 
-use std::error::Error;
+//use std::error::Error;
 use askama::Template;
 use futures::Future;
 use strfmt::{strfmt, FmtError};
