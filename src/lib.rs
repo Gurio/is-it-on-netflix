@@ -75,6 +75,9 @@ fn get_country_map(parsed_response: &json::UnogResponse, target_name: &String) -
             }
         }
     };
+    if let Some(more) = result.get_mut("more") {
+        *more = "...".to_string();
+    };
     result
 }
 
@@ -84,11 +87,8 @@ pub fn index(query: Query<HashMap<String, String>>) -> Result<HttpResponse> {
             let req_uri = get_request_uri(&title[..], &year[..]).expect("Request String formatting error");
             let response = get_unog_response(&req_uri[..]);
             let json_response = json::get_json_body(&response);
-            let mut countries = get_country_map(&json_response, &title);
+            let countries = get_country_map(&json_response, &title);
             println!("{:#?}", countries);
-            if let Some(more) = countries.get_mut("more") {
-                *more = "...".to_string();
-            }
             UserTemplate {
                 title: title,
                 year: year,
