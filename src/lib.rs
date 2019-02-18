@@ -9,18 +9,27 @@ extern crate strfmt;
 mod json;
 
 use std::collections::HashMap;
+use std::fs;
+use std::io::Write;
 
 use actix_web::{
-    client, HttpResponse, Query, Result,
+    dev, error, client, multipart, HttpMessage, HttpRequest, HttpResponse, FutureResponse, Query, Result, Error,
 };
 
 //use std::error::Error;
 use askama::Template;
-use futures::Future;
+use futures::{Future, Stream, future};
 use strfmt::{strfmt, FmtError};
 
 #[derive(Template)]
-#[template(path = "user.html")]
+#[template(path = "movies.jinja")]
+struct MoviesTemplate<'a> {
+    titles: Vec<&'a String>,
+    is_some: bool,
+}
+
+#[derive(Template)]
+#[template(path = "user.jinja")]
 struct UserTemplate<'a> {
     title: &'a str,
     year: &'a str,
@@ -28,12 +37,11 @@ struct UserTemplate<'a> {
 }
 
 #[derive(Template)]
-#[template(path = "index.html")]
+#[template(path = "index.jinja")]
 struct Index;
 
 
 static REQUEST_STR: &'static str = "http://unogs.com/nf.cgi?u=5unogs&q={title}-!{year},{year}-!0,5-!0,10-!0,10-!Any-!Any-!Any-!Any-!I%20Don&t=ns&cl=21,23,26,29,33,307,45,39,327,331,334,337,336,269,267,357,65,67,392,400,402,408,412,348,270,73,34,425,46,78&st=adv&ob=Relevance&p=1&l=100&";
-//static REFERER_STR: &'static str = "http://unogs.com/\\?q\\={title}-\\!{year},{year}-\\!0,5-\\!0,10-\\!0,10-\\!Any-\\!Any-\\!Any-\\!Any-\\!I%20Don\\&cl\\=21,23,26,29,33,307,45,39,327,331,334,337,336,269,267,357,65,67,392,400,402,408,412,348,270,73,34,425,46,78\\&st\\=adv\\&ob\\=Relevance\\&p\\=1\\&ao\\=and";
 
 fn get_request_uri(title: &str, year: &str) -> Result<String, FmtError> {
     let mut vars: HashMap<String, &str> = HashMap::new();
@@ -79,6 +87,67 @@ fn get_country_map(parsed_response: &json::UnogResponse, target_name: &String) -
         *more = "...".to_string();
     };
     result
+}
+
+
+pub fn save_file(
+    field: multipart::Field<dev::Payload>,
+) -> Box<Future<Item = i64, Error = Error>> {
+    let file_path_string = "upload.csv";
+    let mut file = match fs::File::create(file_path_string) {
+        Ok(file) => file,
+        Err(e) => return Box::new(future::err(error::ErrorInternalServerError(e))),
+    };
+    Box::new(
+        field
+            .fold(0i64, move |acc, bytes| {
+                let rt = file
+                    .write_all(bytes.as_ref())
+                    .map(|_| acc + bytes.len() as i64)
+                    .map_err(|e| {
+                        println!("file.write_all failed: {:?}", e);
+                        error::MultipartError::Payload(error::PayloadError::Io(e))
+                    });
+                future::result(rt)
+            })
+            .map_err(|e| {
+                println!("save_file failed, {:?}", e);
+                error::ErrorInternalServerError(e)
+            })
+}
+
+pub fn handle_multipart_item(
+    item: multipart::MultipartItem<dev::Payload>,
+) -> Box<Stream<Item = i64, Error = Error>> {
+    match item {
+        multipart::MultipartItem::Field(field) => {
+            Box::new(save_file(field).into_stream())
+        }
+        multipart::MultipartItem::Nested(mp) => Box::new(
+            mp.map_err(error::ErrorInternalServerError)
+                .map(handle_multipart_item)
+                .flatten(),
+        ),
+    }
+}
+
+pub fn upload(req: HttpRequest) -> FutureResponse<HttpResponse> {
+    let response_body = MoviesTemplate {
+                titles: Vec::new(),
+                is_some: false,
+            }.render().unwrap();
+    Box::new(
+        req.multipart()
+            .map_err(error::ErrorInternalServerError)
+            .map(handle_multipart_item)
+            .flatten()
+            .collect()
+            .map(|_| HttpResponse::Ok().content_type("text/html").body(response_body))
+            .map_err(|e| {
+                println!("failed: {}", e);
+                e
+            }),
+    )
 }
 
 pub fn index(query: Query<HashMap<String, String>>) -> Result<HttpResponse> {

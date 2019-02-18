@@ -4,14 +4,17 @@ use actix_web::{
 };
 
 extern crate is_it_on_netflix;
-use is_it_on_netflix::index;
+use is_it_on_netflix::{index, upload} ;
 
 fn main() {
     let sys = actix::System::new("template-askama");
 
     // start http server
     server::new(move || {
-        App::new().resource("/", |r| r.method(actix_web::http::Method::GET).with(index))
+        App::new().resource("/", |r| {
+            r.method(actix_web::http::Method::GET).with(index);
+            r.method(actix_web::http::Method::POST).with(upload);
+        })
     }).bind("127.0.0.1:8080")
         .unwrap()
         .start();
