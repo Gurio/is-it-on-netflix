@@ -11,10 +11,9 @@ fn main() {
 
     // start http server
     server::new(move || {
-        App::new().resource("/", |r| {
-            r.method(actix_web::http::Method::GET).with(index);
-            r.method(actix_web::http::Method::POST).with(upload);
-        })
+        App::new()
+            .resource("/",          |r| r.method(actix_web::http::Method::GET).with(index))
+            .resource("/upload",    |r| r.method(actix_web::http::Method::POST).with(upload))
     }).bind("127.0.0.1:8080")
         .unwrap()
         .start();
