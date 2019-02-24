@@ -89,17 +89,22 @@ fn get_country_map(parsed_response: &json::UnogResponse, target_name: &String) -
     result
 }
 
-pub fn upload(req: HttpRequest) -> Result<HttpResponse> {
+pub fn upload(req: HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error>> {
     println!("in upload");
-    let body = req.body().wait().unwrap();
-    println!("==== BODY ==== {:?}", body);
-
-    let response_body = 
-            MoviesTemplate {
-                titles: Vec::new(),
-                is_some: false,
-            }.render().unwrap();
-    Ok(HttpResponse::Ok().content_type("text/html").body(response_body))
+    req.body()
+        .from_err()
+        .and_then(|body| {
+            println!("in future");
+            let response_body = MoviesTemplate {
+                        titles: Vec::new(),
+                        is_some: false,
+                    }.render().unwrap();
+            println!("==== BODY ==== {:?}", body);
+            Ok(HttpResponse::Ok()
+                .content_type("text/html")
+                .body(response_body))
+        })
+    .responder()
 }
 
 pub fn index(query: Query<HashMap<String, String>>) -> Result<HttpResponse> {
