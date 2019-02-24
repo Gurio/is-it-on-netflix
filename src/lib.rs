@@ -5,12 +5,15 @@ extern crate env_logger;
 extern crate askama;
 extern crate futures;
 extern crate strfmt;
+extern crate csv;
 
 mod json;
 
 use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
+use csv::ReaderBuilder;
+
 
 use actix_web::{
     dev, error, client, multipart, HttpMessage, HttpRequest, HttpResponse, FutureResponse, AsyncResponder, Query, Result, Error,
@@ -99,7 +102,14 @@ pub fn upload(req: HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error
                         titles: Vec::new(),
                         is_some: false,
                     }.render().unwrap();
-            println!("==== BODY ==== {:?}", body);
+            let mut rdr = ReaderBuilder::new()
+                .has_headers(true)
+                .delimiter(b',')
+                .from_reader(body.as_ref());
+            for result in rdr.records() {
+                let record = result.unwrap();
+                println!("{:?}", record);
+            }
             Ok(HttpResponse::Ok()
                 .content_type("text/html")
                 .body(response_body))

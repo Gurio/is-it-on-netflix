@@ -15,6 +15,7 @@ strfmt = "*"
 serde = "*"
 serde_derive = "*"
 serde_json = "*"
+csv = "1"
 
 [build-dependencies]
 askama = "0.7"
