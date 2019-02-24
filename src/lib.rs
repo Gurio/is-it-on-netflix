@@ -89,36 +89,17 @@ fn get_country_map(parsed_response: &json::UnogResponse, target_name: &String) -
     result
 }
 
-pub fn upload(req: HttpRequest) -> Box<Future<Item = HttpResponse, Error = Error>> {
+pub fn upload(req: HttpRequest) -> Result<HttpResponse> {
     println!("in upload");
-    req.payload()
-        .concat2()
-        .from_err()
-        .and_then(|body| {
-            println!("in future");
-            let response_body = MoviesTemplate {
-                        titles: Vec::new(),
-                        is_some: false,
-                    }.render().unwrap();
-            // body is loaded, now we can deserialize json-rust
-            println!("==== BODY ==== {:?}", body);
-            Ok(HttpResponse::Ok()
-                .content_type("text/html")
-                .body(response_body))
-        })
-    .responder()
-    // let resp: HttpResponse = req.body()                     // <- get Body future
-    //    .limit(1024)                // <- change max size of the body to a 1kb
-    //    .from_err()
-    //    .and_then(|bytes: Bytes| {  // <- complete body
-    //        println!("==== BODY ==== {:?}", bytes);
-    //        Ok(HttpResponse::Ok().into())
-    //    }).responder();
-    //let buff :HashMap<String, String> = req.urlencoded().wait().unwrap();
-    // for (k, v) in &buff {
-    //     println!("parsed: {} {}", k, v);
-    // }
-    //Ok(HttpResponse::Ok().content_type("text/html").body(response_body))
+    let body = req.body().wait().unwrap();
+    println!("==== BODY ==== {:?}", body);
+
+    let response_body = 
+            MoviesTemplate {
+                titles: Vec::new(),
+                is_some: false,
+            }.render().unwrap();
+    Ok(HttpResponse::Ok().content_type("text/html").body(response_body))
 }
 
 pub fn index(query: Query<HashMap<String, String>>) -> Result<HttpResponse> {
